@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-and-build:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Privacy audit
+        run: python3 scripts/check-source.py --history
+      - name: Native tests
+        run: bash scripts/test.sh
+      - name: Native build
+        env:
+          BUILD_DIR: ${{ runner.temp }}/pets-build
+        run: bash build.sh
+      - name: Shipping audit
+        run: python3 scripts/check-package.py "${{ runner.temp }}/pets-build/Codex Pets.app"

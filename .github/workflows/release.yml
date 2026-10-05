@@ -1,0 +1,38 @@
+name: Release package
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: History privacy audit
+        run: python3 scripts/check-source.py --history
+      - name: Tests
+        run: bash scripts/test.sh
+      - name: Build-only packaging dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/pets-packaging"
+          "$RUNNER_TEMP/pets-packaging/bin/python" -m pip install --disable-pip-version-check -r scripts/requirements-packaging.txt
+          echo "$RUNNER_TEMP/pets-packaging/bin" >> "$GITHUB_PATH"
+      - name: Package
+        env:
+          BUILD_DIR: ${{ runner.temp }}/pets-build
+        run: bash scripts/package.sh
+      - name: DMG staging, rollback and tamper rejection
+        run: python3 scripts/test-dmg.py dist/*.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            dist/*.dmg
+            dist/*.sha256
+          if-no-files-found: error
