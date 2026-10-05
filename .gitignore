@@ -1,0 +1,9 @@
+build/
+dist/
+.swiftpm/
+.DS_Store
+*.dmg
+*.sha256
+AGENTS.override.md
+HANDOFF.zh.md
+Resources/IconConcepts/
